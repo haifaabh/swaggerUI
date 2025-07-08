@@ -1,0 +1,2263 @@
+openapi: 3.0.0
+info:
+  title: Donno Exchange Platform API
+  description: API for facilitating exchange of handcrafted and upcycled goods
+  version: 1.0.0
+  contact:
+    name: Donno Team
+  license:
+    name: DonnoDonno
+servers:
+  - url: https://api.donno.com/v1
+    description: Production server
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User profile management
+  - name: Products
+    description: Product listing and management
+  - name: Categories
+    description: Product category management
+  - name: Exchanges
+    description: Exchange request and management
+  - name: Shipping
+    description: Shipping and logistics
+  - name: Messaging
+    description: Chat and messaging system
+  - name: Ratings
+    description: Rating and review system
+  - name: Notifications
+    description: Notification management
+  - name: Files
+    description: File upload and management
+  - name: Payments
+    description: Payment and subscription management
+  - name: Reports
+    description: Reporting system
+  - name: System
+    description: System health and utilities
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input
+        '409':
+          description: User already exists
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+        '401':
+          description: Unauthorized
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid refresh token
+
+  /users/profile:
+    get:
+      tags:
+        - Users
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
+    put:
+      tags:
+        - Users
+      summary: Update user profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Get public user profile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Public user profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUserProfile'
+        '404':
+          description: User not found
+
+  /users/{userId}/badges:
+    get:
+      tags:
+        - Users
+      summary: Get user badges
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User badges retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserBadge'
+        '404':
+          description: User not found
+
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get products with pagination and filters
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: fmv_class
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, locked, exchanged, archived]
+      responses:
+        '200':
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /products/{productId}:
+    get:
+      tags:
+        - Products
+      summary: Get product details
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Product details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+    put:
+      tags:
+        - Products
+      summary: Update product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not owner)
+        '404':
+          description: Product not found
+    delete:
+      tags:
+        - Products
+      summary: Delete product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Product deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not owner)
+        '404':
+          description: Product not found
+
+  /products/{productId}/images:
+    post:
+      tags:
+        - Products
+      summary: Add product image
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                is_primary:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Image added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductImage'
+        '400':
+          description: Invalid file
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not owner)
+        '404':
+          description: Product not found
+
+  /products/{productId}/tags:
+    post:
+      tags:
+        - Products
+      summary: Add tag to product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tag_name:
+                  type: string
+                  maxLength: 50
+      responses:
+        '201':
+          description: Tag added successfully
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not owner)
+        '404':
+          description: Product not found
+
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: Get all categories
+      responses:
+        '200':
+          description: Categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+  /tags:
+    get:
+      tags:
+        - Products
+      summary: Get all tags
+      responses:
+        '200':
+          description: Tags retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+
+  /exchanges/request:
+    post:
+      tags:
+        - Exchanges
+      summary: Create exchange request
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExchangeRequest'
+      responses:
+        '201':
+          description: Exchange request created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exchange'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /exchanges/incoming:
+    get:
+      tags:
+        - Exchanges
+      summary: Get incoming exchange requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Incoming exchanges retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Exchange'
+        '401':
+          description: Unauthorized
+
+  /exchanges/outgoing:
+    get:
+      tags:
+        - Exchanges
+      summary: Get outgoing exchange requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Outgoing exchanges retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Exchange'
+        '401':
+          description: Unauthorized
+
+  /exchanges/{exchangeId}/accept:
+    put:
+      tags:
+        - Exchanges
+      summary: Accept exchange request
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: exchangeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Exchange accepted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exchange'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not recipient)
+        '404':
+          description: Exchange not found
+
+  /exchanges/{exchangeId}/decline:
+    put:
+      tags:
+        - Exchanges
+      summary: Decline exchange request
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: exchangeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Exchange declined successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exchange'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not recipient)
+        '404':
+          description: Exchange not found
+
+  /exchanges/{exchangeId}/counter-offer:
+    put:
+      tags:
+        - Exchanges
+      summary: Make counter-offer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: exchangeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CounterOffer'
+      responses:
+        '200':
+          description: Counter-offer made successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exchange'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not recipient)
+        '404':
+          description: Exchange not found
+
+  /exchanges/{exchangeId}/messages:
+    get:
+      tags:
+        - Exchanges
+      summary: Get exchange messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: exchangeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExchangeMessage'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not participant)
+        '404':
+          description: Exchange not found
+    post:
+      tags:
+        - Exchanges
+      summary: Send exchange message
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: exchangeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeMessage'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not participant)
+        '404':
+          description: Exchange not found
+
+  /exchanges/{exchangeId}:
+    get:
+      tags:
+        - Exchanges
+      summary: Get exchange details
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: exchangeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Exchange details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exchange'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not participant)
+        '404':
+          description: Exchange not found
+    delete:
+      tags:
+        - Exchanges
+      summary: Cancel exchange request
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: exchangeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: reason
+          in: query
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Exchange canceled successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not initiator)
+        '404':
+          description: Exchange not found
+
+  /exchanges/{exchangeId}/offers:
+    get:
+      tags:
+        - Exchanges
+      summary: Get exchange offers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: exchangeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Offers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExchangeOffer'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not participant)
+        '404':
+          description: Exchange not found
+
+  /shipping/carriers:
+    get:
+      tags:
+        - Shipping
+      summary: Get shipping carriers
+      responses:
+        '200':
+          description: Carriers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShippingCarrier'
+
+  /shipping/address:
+    get:
+      tags:
+        - Shipping
+      summary: Get shipping addresses
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Shipping addresses retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShippingAddress'
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Shipping
+      summary: Add shipping address
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShippingAddressCreate'
+      responses:
+        '201':
+          description: Shipping address added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingAddress'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /exchanges/{exchangeId}/shipping:
+    post:
+      tags:
+        - Shipping
+      summary: Generate shipping labels
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: exchangeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: carrierId
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShippingLabelRequest'
+      responses:
+        '200':
+          description: Shipping labels generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingLabels'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not participant)
+        '404':
+          description: Exchange not found
+
+  /shipping/labels/{labelId}/tracking:
+    get:
+      tags:
+        - Shipping
+      summary: Get shipment tracking
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: labelId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tracking information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackingInfo'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not participant)
+        '404':
+          description: Label not found
+
+  /chats:
+    get:
+      tags:
+        - Messaging
+      summary: Get user's chat conversations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Chat conversations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatConversation'
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Messaging
+      summary: Start new chat conversation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCreate'
+      responses:
+        '201':
+          description: Chat created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatConversation'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /chats/{chatId}:
+    get:
+      tags:
+        - Messaging
+      summary: Get chat conversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Chat conversation retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatConversation'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not participant)
+        '404':
+          description: Chat not found
+
+  /chats/{chatId}/messages:
+    get:
+      tags:
+        - Messaging
+      summary: Get chat messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatMessage'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not participant)
+        '404':
+          description: Chat not found
+    post:
+      tags:
+        - Messaging
+      summary: Send message
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageCreate'
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not participant)
+        '404':
+          description: Chat not found
+
+  /chats/{chatId}/attachments:
+    post:
+      tags:
+        - Messaging
+      summary: Upload chat attachment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Attachment uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatAttachment'
+        '400':
+          description: Invalid file
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not participant)
+        '404':
+          description: Chat not found
+
+  /chats/{chatId}/read:
+    put:
+      tags:
+        - Messaging
+      summary: Mark messages as read
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Messages marked as read successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (not participant)
+        '404':
+          description: Chat not found
+
+  /ratings:
+    post:
+      tags:
+        - Ratings
+      summary: Create rating/review
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingCreate'
+      responses:
+        '201':
+          description: Rating created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /users/{userId}/ratings:
+    get:
+      tags:
+        - Ratings
+      summary: Get user ratings
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Ratings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rating'
+        '404':
+          description: User not found
+
+  /reports/user:
+    post:
+      tags:
+        - Reports
+      summary: Report a user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserReportCreate'
+      responses:
+        '201':
+          description: Report submitted successfully
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /reports/product:
+    post:
+      tags:
+        - Reports
+      summary: Report a product
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductReportCreate'
+      responses:
+        '201':
+          description: Report submitted successfully
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /payments/methods:
+    get:
+      tags:
+        - Payments
+      summary: Get payment methods
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Payment methods retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentMethod'
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Payments
+      summary: Add payment method
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentMethodCreate'
+      responses:
+        '201':
+          description: Payment method added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethod'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /payments/methods/{methodId}:
+    delete:
+      tags:
+        - Payments
+      summary: Remove payment method
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: methodId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Payment method removed successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Payment method not found
+
+  /subscriptions:
+    get:
+      tags:
+        - Payments
+      summary: Get user subscriptions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Subscriptions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subscription'
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Payments
+      summary: Create subscription
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionCreate'
+      responses:
+        '201':
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /subscriptions/{subscriptionId}:
+    delete:
+      tags:
+        - Payments
+      summary: Cancel subscription
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Subscription canceled successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Subscription not found
+
+  /transactions:
+    get:
+      tags:
+        - Payments
+      summary: Get user transactions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Transactions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '401':
+          description: Unauthorized
+
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get user notifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '401':
+          description: Unauthorized
+
+  /notifications/{notificationId}/read:
+    put:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification marked as read successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Notification not found
+
+  /notifications/read-all:
+    put:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All notifications marked as read successfully
+        '401':
+          description: Unauthorized
+
+  /upload:
+    post:
+      tags:
+        - Files
+      summary: Upload file
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileUploadResponse'
+        '400':
+          description: Invalid file
+        '401':
+          description: Unauthorized
+
+  /system/health:
+    get:
+      tags:
+        - System
+      summary: Check system health
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                  details:
+                    type: object
+
+components:
+  schemas:
+    UserRegistration:
+      type: object
+      required:
+        - email
+        - password
+        - username
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        username:
+          type: string
+          minLength: 3
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        bio:
+          type: string
+
+    UserLogin:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    UserProfile:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        avatar_url:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        bio:
+          type: string
+        trust_score:
+          type: number
+          format: float
+        is_verified:
+          type: boolean
+        is_premium:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        bio:
+          type: string
+        avatar_url:
+          type: string
+
+    PublicUserProfile:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        avatar_url:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        bio:
+          type: string
+        trust_score:
+          type: number
+          format: float
+        created_at:
+          type: string
+          format: date-time
+
+    UserBadge:
+      type: object
+      properties:
+        badge_id:
+          type: integer
+        badge_type:
+          type: string
+        awarded_at:
+          type: string
+          format: date-time
+
+    Product:
+      type: object
+      properties:
+        product_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        category_id:
+          type: integer
+        fmv_class:
+          type: string
+        estimated_value:
+          type: number
+          format: float
+        status:
+          type: string
+        is_customizable:
+          type: boolean
+        view_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductImage'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        owner:
+          $ref: '#/components/schemas/PublicUserProfile'
+
+    ProductCreate:
+      type: object
+      required:
+        - title
+        - description
+        - category_id
+        - fmv_class
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        category_id:
+          type: integer
+        fmv_class:
+          type: string
+        estimated_value:
+          type: number
+          format: float
+        is_customizable:
+          type: boolean
+          default: false
+        tags:
+          type: array
+          items:
+            type: string
+
+    ProductUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        category_id:
+          type: integer
+        fmv_class:
+          type: string
+        estimated_value:
+          type: number
+          format: float
+        status:
+          type: string
+        is_customizable:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+
+    ProductImage:
+      type: object
+      properties:
+        image_id:
+          type: string
+          format: uuid
+        url:
+          type: string
+        is_primary:
+          type: boolean
+        position:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      properties:
+        category_id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        parent_id:
+          type: integer
+        is_active:
+          type: boolean
+
+    Tag:
+      type: object
+      properties:
+        tag_id:
+          type: integer
+        name:
+          type: string
+
+    ExchangeRequest:
+      type: object
+      required:
+        - recipient_id
+        - initiator_product_id
+        - recipient_product_id
+      properties:
+        recipient_id:
+          type: string
+          format: uuid
+        initiator_product_id:
+          type: string
+          format: uuid
+        recipient_product_id:
+          type: string
+          format: uuid
+        message:
+          type: string
+
+    Exchange:
+      type: object
+      properties:
+        exchange_id:
+          type: string
+          format: uuid
+        initiator_id:
+          type: string
+          format: uuid
+        recipient_id:
+          type: string
+          format: uuid
+        status_id:
+          type: integer
+        initiator_product:
+          $ref: '#/components/schemas/Product'
+        recipient_product:
+          $ref: '#/components/schemas/Product'
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        cancelled_by:
+          type: string
+          format: uuid
+        cancellation_reason:
+          type: string
+        offers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExchangeOffer'
+
+    ExchangeOffer:
+      type: object
+      properties:
+        offer_id:
+          type: string
+          format: uuid
+        proposed_by:
+          type: string
+          format: uuid
+        proposed_product:
+          $ref: '#/components/schemas/Product'
+        requested_product:
+          $ref: '#/components/schemas/Product'
+        is_counter_offer:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    ExchangeMessage:
+      type: object
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        is_read:
+          type: boolean
+
+    CounterOffer:
+      type: object
+      required:
+        - proposed_product_id
+        - requested_product_id
+      properties:
+        proposed_product_id:
+          type: string
+          format: uuid
+        requested_product_id:
+          type: string
+          format: uuid
+        message:
+          type: string
+
+    ShippingCarrier:
+      type: object
+      properties:
+        carrier_id:
+          type: integer
+        name:
+          type: string
+        api_name:
+          type: string
+        is_active:
+          type: boolean
+
+    ShippingAddress:
+      type: object
+      properties:
+        recipientName:
+          type: string
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+        isDefault:
+          type: boolean
+
+    ShippingAddressCreate:
+      type: object
+      required:
+        - recipientName
+        - street
+        - city
+        - state
+        - postalCode
+        - country
+      properties:
+        recipientName:
+          type: string
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+        isDefault:
+          type: boolean
+          default: false
+
+    ShippingLabelRequest:
+      type: object
+      required:
+        - from_address
+        - to_address
+      properties:
+        from_address:
+          type: object
+          properties:
+            name:
+              type: string
+            street:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            postalCode:
+              type: string
+            country:
+              type: string
+            phone:
+              type: string
+        to_address:
+          type: object
+          properties:
+            name:
+              type: string
+            street:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            postalCode:
+              type: string
+            country:
+              type: string
+            phone:
+              type: string
+
+    ShippingLabels:
+      type: object
+      properties:
+        outgoing_label:
+          type: string
+        return_label:
+          type: string
+        tracking_number:
+          type: string
+        carrier:
+          type: string
+
+    TrackingInfo:
+      type: object
+      properties:
+        carrier:
+          type: string
+        tracking_number:
+          type: string
+        status:
+          type: string
+        estimated_delivery:
+          type: string
+          format: date-time
+        updates:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              location:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+              details:
+                type: string
+
+    ChatConversation:
+      type: object
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        user1:
+          $ref: '#/components/schemas/PublicUserProfile'
+        user2:
+          $ref: '#/components/schemas/PublicUserProfile'
+        last_message:
+          $ref: '#/components/schemas/ChatMessage'
+        unread_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ChatCreate:
+      type: object
+      required:
+        - user_id
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        initial_message:
+          type: string
+
+    ChatMessage:
+      type: object
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        sender:
+          $ref: '#/components/schemas/PublicUserProfile'
+        content:
+          type: string
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatAttachment'
+
+    ChatMessageCreate:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+
+    ChatAttachment:
+      type: object
+      properties:
+        attachment_id:
+          type: string
+          format: uuid
+        file_url:
+          type: string
+        file_type:
+          type: string
+        file_size:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    RatingCreate:
+      type: object
+      required:
+        - exchange_id
+        - rated_user_id
+        - score
+      properties:
+        exchange_id:
+          type: string
+          format: uuid
+        rated_user_id:
+          type: string
+          format: uuid
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 500
+
+    Rating:
+      type: object
+      properties:
+        rating_id:
+          type: string
+          format: uuid
+        exchange_id:
+          type: string
+          format: uuid
+        rated_user:
+          $ref: '#/components/schemas/PublicUserProfile'
+        rating_user:
+          $ref: '#/components/schemas/PublicUserProfile'
+        score:
+          type: integer
+        comment:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    UserReportCreate:
+      type: object
+      required:
+        - reported_user_id
+        - report_type
+        - description
+      properties:
+        reported_user_id:
+          type: string
+          format: uuid
+        report_type:
+          type: string
+        description:
+          type: string
+
+    ProductReportCreate:
+      type: object
+      required:
+        - product_id
+        - report_type
+        - description
+      properties:
+        product_id:
+          type: string
+          format: uuid
+        report_type:
+          type: string
+        description:
+          type: string
+
+    PaymentMethod:
+      type: object
+      properties:
+        method_id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+        is_default:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    PaymentMethodCreate:
+      type: object
+      required:
+        - provider
+        - payment_details
+      properties:
+        provider:
+          type: string
+        payment_details:
+          type: object
+        is_default:
+          type: boolean
+          default: false
+
+    Subscription:
+      type: object
+      properties:
+        subscription_id:
+          type: string
+          format: uuid
+        plan_id:
+          type: string
+        status:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        renewal_date:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    SubscriptionCreate:
+      type: object
+      required:
+        - plan_id
+        - payment_method_id
+      properties:
+        plan_id:
+          type: string
+        payment_method_id:
+          type: string
+          format: uuid
+
+    Transaction:
+      type: object
+      properties:
+        transaction_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: float
+        currency:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        notification_id:
+          type: string
+          format: uuid
+        content:
+          type: string
+        channel:
+          type: string
+        is_read:
+          type: boolean
+        sent_at:
+          type: string
+          format: date-time
+        read_at:
+          type: string
+          format: date-time
+
+    FileUploadResponse:
+      type: object
+      properties:
+        url:
+          type: string
+        key:
+          type: string
+        size:
+          type: integer
+        mimeType:
+          type: string
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
